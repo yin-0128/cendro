@@ -29,19 +29,26 @@ dataset/seed_pairs.jsonl     # ~20-30 {prompt, chosen, rejected} examples
 ```
 
 To generate more, use an LLM judge to turn raw code samples into preference pairs. The default
-judge is **Claude** (`claude-opus-4-8`); the provider is pluggable (`--provider`).
+judge is **free and local** — a model you've already pulled into Ollama (`--provider ollama`),
+so no API key and no cloud. The provider is pluggable.
 
 ```bash
 # Put raw code snippets (one file per sample) under dataset/raw/, then:
-export ANTHROPIC_API_KEY=sk-ant-...
+
+# FREE & local (default) — uses Ollama structured outputs to force the {chosen, rejected} shape:
 python scripts/generate_preferences.py \
   --input dataset/raw/ \
-  --output dataset/dpo_pairs.jsonl \
-  --provider anthropic        # or: openai
+  --provider ollama --model qwen2.5-coder:3b \
+  --output dataset/dpo_pairs.jsonl
+
+# Optional cloud judge — higher-quality pairs, but sends code to the API and costs money:
+export ANTHROPIC_API_KEY=sk-ant-...
+python scripts/generate_preferences.py --input dataset/raw/ --provider anthropic   # or: openai
 ```
 
 `chosen` = a specific, opinionated review with a concrete fix. `rejected` = a generic,
-low-signal review. Human-review at least ~10% of generated pairs before training.
+low-signal review. The local judge is weaker than a frontier model, so human-review your pairs
+(at least ~10%) before training — a bigger local model (e.g. `qwen2.5:7b`) gives better pairs.
 
 ## 2. (Optional) QLoRA SFT warm-up
 

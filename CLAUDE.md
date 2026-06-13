@@ -118,7 +118,7 @@ torch>=2.2
 
 - `2026-06-13` — Locked base model to **Qwen2.5-Coder-3B-Instruct** (fits 8GB VRAM with 4-bit QLoRA; strong code performance for its size).
 - `2026-06-13` — MVP serves an **off-the-shelf Ollama model first** (`qwen2.5-coder:3b`) so the end-to-end flow works before any fine-tuning.
-- `2026-06-13` — DPO preference data generation defaults to **Claude (`claude-opus-4-8`)** as the judge, provider-pluggable.
+- `2026-06-13` — DPO preference data generation defaults to a **free, local Ollama judge** (privacy-first); `--provider anthropic`/`openai` are optional higher-quality cloud judges.
 
 ---
 

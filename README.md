@@ -153,18 +153,21 @@ jobs:
 
 ## 🏋️ Train Your Own Model
 
-Fine-tune on your own codebase style or rules. **Requires:** NVIDIA GPU with 8GB+ VRAM.
+Fine-tune on your own codebase style or rules. **100% free and local** — no API keys, no
+cloud. **Requires:** NVIDIA GPU with 8GB+ VRAM.
 
 ```bash
 # Install training deps
 pip install -e ".[train]"
 
-# (Optional) generate preference data with an LLM judge (default: Claude)
+# (Optional) grow the dataset — FREE & local, judged by a model you've pulled in Ollama.
+# A committed seed set already works without this step.
 python scripts/generate_preferences.py \
   --input dataset/raw/ \
+  --provider ollama --model qwen2.5-coder:3b \
   --output dataset/dpo_pairs.jsonl
 
-# Train with QLoRA + DPO (a committed seed dataset works out of the box)
+# Train with QLoRA + DPO (the committed seed dataset works out of the box)
 python model/dpo_train.py \
   --config configs/qlora_3b.yaml \
   --dataset dataset/seed_pairs.jsonl \
@@ -174,6 +177,10 @@ python model/dpo_train.py \
 python scripts/convert_to_gguf.py --model model/output/cendro-3b --outfile model/cendro-3b.gguf
 cendro serve --model cendro-3b
 ```
+
+> **Want higher-quality training pairs?** `--provider anthropic` (or `openai`) uses a frontier
+> cloud model as the judge — better pairs, but it sends code to that API and costs money. The
+> default `ollama` provider keeps everything free and on your machine.
 
 Full guide: [docs/TRAINING.md](docs/TRAINING.md)
 
