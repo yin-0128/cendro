@@ -78,9 +78,9 @@ project-root/
 2. `CLAUDE.md` — current status, last task, next task
 3. Relevant doc file if workflow/tool/skill changed
 
-**Current Status:** `Foundation build — repo cleanup, MVP API, and training pipeline scaffolded`
-**Last Completed Task:** `Cleaned repo, honest README, FastAPI+Ollama MVP, QLoRA/DPO scripts`
-**Next Task:** `Pull qwen2.5-coder:3b, run the API end-to-end, generate a real DPO dataset`
+**Current Status:** `MVP verified end-to-end; pushed to GitHub; GitHub Action built`
+**Last Completed Task:** `Pushed to github.com/yin-0128/cendro; built PR-review Action; ran live /review against qwen2.5-coder:3b`
+**Next Task:** `Generate a real DPO dataset and run the first QLoRA+DPO training; test the Action on a live PR`
 **Blockers:** `None`
 
 ---

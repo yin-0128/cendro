@@ -1,0 +1,52 @@
+name: "Cendro Code Review"
+description: "AI code review on pull requests, powered by Cendro."
+author: "yin-0128"
+branding:
+  icon: "search"
+  color: "purple"
+
+inputs:
+  github-token:
+    description: "Token used to read the PR diff and post the review comment."
+    required: true
+  backend:
+    description: "Reviewer backend: 'anthropic' (Claude API, for hosted CI) or 'ollama' (a self-hosted Cendro/Ollama server)."
+    required: false
+    default: "anthropic"
+  model:
+    description: "Model to use. Defaults: claude-opus-4-8 (anthropic) / qwen2.5-coder:3b (ollama)."
+    required: false
+    default: ""
+  server-url:
+    description: "Ollama server URL (only used when backend=ollama). Use a self-hosted runner that can reach your Cendro server."
+    required: false
+    default: "http://localhost:11434"
+  anthropic-api-key:
+    description: "Anthropic API key (only used when backend=anthropic)."
+    required: false
+    default: ""
+  max-files:
+    description: "Maximum number of changed files to review per PR."
+    required: false
+    default: "25"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+    - name: Install dependencies
+      shell: bash
+      run: pip install --quiet anthropic>=0.40 requests>=2.31
+    - name: Review the pull request
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        CENDRO_BACKEND: ${{ inputs.backend }}
+        CENDRO_MODEL: ${{ inputs.model }}
+        CENDRO_SERVER_URL: ${{ inputs.server-url }}
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
+        CENDRO_MAX_FILES: ${{ inputs.max-files }}
+      run: python "$GITHUB_ACTION_PATH/review_pr.py"

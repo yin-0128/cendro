@@ -29,7 +29,7 @@
 | VS Code extension | 🧪 Minimal, runs from source (F5) |
 | QLoRA + DPO training pipeline | ✅ Scripts ready, not yet trained on real data |
 | Fine-tuned `cendro-3b` model | ⛔ Not trained yet — MVP uses off-the-shelf `qwen2.5-coder:3b` |
-| GitHub Action | ⛔ Planned |
+| GitHub Action (PR review) | 🧪 Built, not yet battle-tested — Claude API or self-hosted Ollama backend |
 | Published packages (PyPI / Marketplace) | ⛔ Planned |
 
 ---
@@ -120,24 +120,34 @@ Then: highlight code → right-click → **"Review with Cendro"** (requires `cen
 
 ---
 
-## ⚙️ GitHub Action (planned)
+## ⚙️ GitHub Action
 
-A GitHub Action that comments inline on PRs is on the roadmap. The intended usage:
+Cendro reviews changed files on every pull request and posts a summary comment. Two backends:
+the **Claude API** (works on GitHub-hosted runners) or a **self-hosted Cendro/Ollama server**
+(keeps code on your own infra — use a self-hosted runner). See [github-action/README.md](github-action/README.md).
 
 ```yaml
-# .github/workflows/code-review.yml  (not yet shipped)
-name: AI Code Review
+# .github/workflows/code-review.yml
+name: Cendro Code Review
 on: [pull_request]
+
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
   review:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: yin-0128/cendro-action@v1
+      - uses: yin-0128/cendro/github-action@main
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          backend: anthropic                       # or: ollama (self-hosted)
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
+
+> 🧪 Built and self-reviewed, but not yet exercised on a live PR — try it and open an issue
+> with anything rough.
 
 ---
 
@@ -190,9 +200,9 @@ Evaluation harness: `model/evaluate.py` (see [docs/TRAINING.md](docs/TRAINING.md
 - [x] FastAPI inference server (Ollama-backed)
 - [x] `cendro` CLI
 - [x] QLoRA + DPO training scripts
+- [x] GitHub Action (PR review) — Claude API / self-hosted backends
 - [ ] Trained `cendro-3b` model on a real DPO dataset
 - [ ] VS Code extension (Marketplace release)
-- [ ] GitHub Action
 - [ ] Streaming responses
 - [ ] Language-specific model variants (Python, TypeScript, Go)
 - [ ] Hosted cloud tier (bring your own key or subscribe)
