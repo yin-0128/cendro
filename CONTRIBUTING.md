@@ -17,7 +17,7 @@ Optional (for training work): `pip install -e ".[train]"` — needs an NVIDIA GP
 ## Running the server
 
 ```bash
-cendro pull        # pull qwen2.5-coder:3b into Ollama
+cendro pull        # pull qwen2.5-coder:7b into Ollama
 cendro serve       # http://localhost:8000
 ```
 

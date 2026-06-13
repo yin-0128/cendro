@@ -1,12 +1,41 @@
 # TRAINING.md — Fine-tuning Cendro
 
-End-to-end guide for producing the `cendro-3b` model with **QLoRA + DPO** on a single consumer
-GPU (built and tested against an RTX 4060, 8GB VRAM).
+End-to-end guide for producing the `cendro` model with **QLoRA + DPO** on a single consumer GPU
+(targets an RTX 4060, 8GB VRAM). Two size targets:
+
+- **`configs/qlora_7b.yaml`** — Qwen2.5-Coder-**7B** (best quality; tight on 8GB — short
+  sequences, ideally Unsloth). The recommended target.
+- **`configs/qlora_3b.yaml`** — Qwen2.5-Coder-**3B** (safe, fast; good for proving the pipeline).
 
 > **Hardware rule:** 4-bit QLoRA only — never full fine-tuning. Keep `per_device_train_batch_size`
 > at 1 and use gradient accumulation. Use `bfloat16` compute dtype.
 
-## 0. Install training deps
+## 0a. Run training under WSL2 (recommended on Windows)
+
+QLoRA on native Windows often fights `bitsandbytes`/Triton. WSL2 (Ubuntu) is the reliable path
+and the only supported environment for Unsloth.
+
+```powershell
+# In Windows PowerShell (admin), one-time:
+wsl --install -d Ubuntu
+```
+
+Then inside the Ubuntu shell:
+
+```bash
+# NVIDIA drivers on the Windows host already expose the GPU to WSL — no driver install in WSL.
+nvidia-smi                                  # should list your RTX 4060
+sudo apt update && sudo apt install -y python3-venv git
+git clone https://github.com/yin-0128/cendro && cd cendro
+python3 -m venv .venv && . .venv/bin/activate
+pip install -e ".[train]"
+```
+
+> **7B on 8GB:** plain TRL/peft can OOM. For reliable 7B QLoRA, also `pip install unsloth` and
+> follow Unsloth's loader (it cuts VRAM ~2x). With the stock scripts, keep `max_length: 768` (or
+> drop to 512) from `configs/qlora_7b.yaml`. The 3B config trains comfortably without Unsloth.
+
+## 0b. Install training deps
 
 ```bash
 pip install -e ".[train]"
@@ -38,7 +67,7 @@ so no API key and no cloud. The provider is pluggable.
 # FREE & local (default) — uses Ollama structured outputs to force the {chosen, rejected} shape:
 python scripts/generate_preferences.py \
   --input dataset/raw/ \
-  --provider ollama --model qwen2.5-coder:3b \
+  --provider ollama --model qwen2.5-coder:14b \
   --output dataset/dpo_pairs.jsonl
 
 # Optional cloud judge — higher-quality pairs, but sends code to the API and costs money:
@@ -48,7 +77,9 @@ python scripts/generate_preferences.py --input dataset/raw/ --provider anthropic
 
 `chosen` = a specific, opinionated review with a concrete fix. `rejected` = a generic,
 low-signal review. The local judge is weaker than a frontier model, so human-review your pairs
-(at least ~10%) before training — a bigger local model (e.g. `qwen2.5:7b`) gives better pairs.
+(at least ~10%) before training — a bigger local judge (`qwen2.5-coder:14b`, or `:32b` if your
+RAM allows) gives noticeably better pairs. Generation is an offline batch job, so a slow big
+model is fine.
 
 ## 2. (Optional) QLoRA SFT warm-up
 
@@ -56,7 +87,8 @@ A short supervised pass on `{prompt, chosen}` pairs helps DPO converge. Skip if 
 preference data.
 
 ```bash
-python model/train.py --config configs/qlora_3b.yaml --dataset dataset/seed_pairs.jsonl \
+# 7B (quality target). Swap to configs/qlora_3b.yaml for the fast/safe run.
+python model/train.py --config configs/qlora_7b.yaml --dataset dataset/seed_pairs.jsonl \
   --output model/output/sft
 ```
 
@@ -64,16 +96,16 @@ python model/train.py --config configs/qlora_3b.yaml --dataset dataset/seed_pair
 
 ```bash
 python model/dpo_train.py \
-  --config configs/qlora_3b.yaml \
+  --config configs/qlora_7b.yaml \
   --dataset dataset/seed_pairs.jsonl \
-  --output model/output/cendro-3b
+  --output model/output/cendro-7b
 ```
 
-Key settings (in `configs/qlora_3b.yaml`):
+Key settings (in `configs/qlora_7b.yaml` — the 3B config mirrors them with a longer `max_length`):
 
 | Setting | Value | Why |
 |---------|-------|-----|
-| `load_in_4bit` | `true` (nf4 + double quant) | Fit 3B on 8GB |
+| `load_in_4bit` | `true` (nf4 + double quant) | Fit the model on 8GB |
 | `bnb_4bit_compute_dtype` | `bfloat16` | Stable, fast on Ada |
 | LoRA `r` / `alpha` | 16 / 32 | Good capacity/VRAM tradeoff |
 | `per_device_train_batch_size` | 1 | VRAM limit |
@@ -88,7 +120,8 @@ Monitor VRAM in a second terminal: `nvidia-smi` (or `nvitop`). If you hit OOM, l
 ## 4. Evaluate
 
 ```bash
-python model/evaluate.py --model model/output/cendro-3b
+python model/evaluate.py --model model/output/cendro-7b \
+  --base-model Qwen/Qwen2.5-Coder-7B-Instruct
 ```
 
 Checks each review is non-empty and references a concrete issue; optional BERTScore against
@@ -97,10 +130,11 @@ reference reviews. Log results (date + metrics) in `.claude/MEMORY.md`.
 ## 5. Export to GGUF + serve
 
 ```bash
-python scripts/convert_to_gguf.py --model model/output/cendro-3b --outfile model/cendro-3b.gguf
+python scripts/convert_to_gguf.py --model model/output/cendro-7b \
+  --base-model Qwen/Qwen2.5-Coder-7B-Instruct --outfile model/cendro-7b.gguf --name cendro-7b
 # Registers a Modelfile so Ollama can load it:
-cendro pull --model cendro-3b
-cendro serve --model cendro-3b
+cendro pull --model cendro-7b
+cendro serve --model cendro-7b
 ```
 
 ## Troubleshooting

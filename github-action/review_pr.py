@@ -101,7 +101,7 @@ def review_with_ollama(filename: str, patch: str, model: str, server_url: str) -
     resp = requests.post(
         f"{server_url.rstrip('/')}/api/chat",
         json={
-            "model": model or "qwen2.5-coder:3b",
+            "model": model or "qwen2.5-coder:7b",
             "stream": False,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},

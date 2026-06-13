@@ -12,7 +12,7 @@ from dataclasses import dataclass
 
 from api.prompts import build_review_messages
 
-DEFAULT_MODEL = os.environ.get("CENDRO_MODEL", "qwen2.5-coder:3b")
+DEFAULT_MODEL = os.environ.get("CENDRO_MODEL", "qwen2.5-coder:7b")
 
 
 @dataclass

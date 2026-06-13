@@ -18,7 +18,7 @@ Reviews the changed files in a pull request and posts a summary comment.
 |-------|----------|---------|-------------|
 | `github-token` | yes | — | Token to read the PR diff and post the comment. `${{ secrets.GITHUB_TOKEN }}` is enough. |
 | `backend` | no | `anthropic` | `anthropic` or `ollama`. |
-| `model` | no | backend default | `claude-opus-4-8` / `qwen2.5-coder:3b`. |
+| `model` | no | backend default | `claude-opus-4-8` / `qwen2.5-coder:7b`. |
 | `server-url` | no | `http://localhost:11434` | Ollama server URL (ollama backend). |
 | `anthropic-api-key` | no | — | Anthropic API key (anthropic backend). |
 | `max-files` | no | `25` | Max changed files reviewed per PR. |
@@ -57,7 +57,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           backend: ollama
           server-url: http://localhost:11434
-          model: qwen2.5-coder:3b
+          model: qwen2.5-coder:7b
 ```
 
 ## Notes

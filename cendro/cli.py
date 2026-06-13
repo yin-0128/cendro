@@ -17,7 +17,7 @@ import sys
 
 from cendro import __version__
 
-DEFAULT_MODEL = "qwen2.5-coder:3b"
+DEFAULT_MODEL = "qwen2.5-coder:7b"
 
 
 def _resolve_model(arg_model: str | None) -> str:

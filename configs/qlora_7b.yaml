@@ -1,0 +1,38 @@
+# QLoRA + DPO config for Qwen2.5-Coder-7B-Instruct on an RTX 4060 (8GB VRAM).
+# 7B is the quality target but is TIGHT on 8GB — these settings trade sequence length and
+# batch for headroom. If you OOM, first lower max_length (768 -> 512), then see docs/TRAINING.md
+# (use Unsloth, which trains 7B comfortably on 8GB). Run training under WSL2/Ubuntu.
+
+base_model: Qwen/Qwen2.5-Coder-7B-Instruct
+
+quant:
+  load_in_4bit: true
+  bnb_4bit_quant_type: nf4
+  bnb_4bit_use_double_quant: true
+  bnb_4bit_compute_dtype: bfloat16
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+
+train:
+  output_dir: model/output/cendro-7b
+  num_train_epochs: 1
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 16     # effective batch 16; raise if you have headroom
+  gradient_checkpointing: true        # essential for 7B on 8GB
+  learning_rate: 0.0001
+  lr_scheduler_type: cosine
+  warmup_ratio: 0.03
+  logging_steps: 5
+  save_steps: 50
+  bf16: true
+  optim: paged_adamw_8bit             # 8-bit + paged keeps optimizer VRAM low
+  max_length: 768                     # shorter than the 3B config to fit 8GB
+  max_prompt_length: 512
+  seed: 42
+
+dpo:
+  beta: 0.1

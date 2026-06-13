@@ -14,7 +14,7 @@ inputs:
     required: false
     default: "anthropic"
   model:
-    description: "Model to use. Defaults: claude-opus-4-8 (anthropic) / qwen2.5-coder:3b (ollama)."
+    description: "Model to use. Defaults: claude-opus-4-8 (anthropic) / qwen2.5-coder:7b (ollama)."
     required: false
     default: ""
   server-url:

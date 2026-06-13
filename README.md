@@ -28,7 +28,7 @@
 | `cendro` CLI (`serve` / `review` / `pull`) | ✅ Working |
 | VS Code extension | 🧪 Minimal, runs from source (F5) |
 | QLoRA + DPO training pipeline | ✅ Scripts ready, not yet trained on real data |
-| Fine-tuned `cendro-3b` model | ⛔ Not trained yet — MVP uses off-the-shelf `qwen2.5-coder:3b` |
+| Fine-tuned `cendro` model | ⛔ Not trained yet — MVP uses off-the-shelf `qwen2.5-coder:7b` |
 | GitHub Action (PR review) | 🧪 Built, not yet battle-tested — Claude API or self-hosted Ollama backend |
 | Published packages (PyPI / Marketplace) | ⛔ Planned |
 
@@ -51,7 +51,7 @@ suggestions:
 +  Here's the fix: [code]"
 ```
 
-> Today the MVP serves an off-the-shelf `qwen2.5-coder:3b` model through the same prompt and
+> Today the MVP serves an off-the-shelf `qwen2.5-coder:7b` model through the same prompt and
 > API. The DPO fine-tune that produces the opinionated `cendro-3b` model is the next milestone.
 
 ---
@@ -67,7 +67,7 @@ cd cendro
 pip install -e .
 
 # 2. Pull the base model into Ollama
-cendro pull            # pulls qwen2.5-coder:3b
+cendro pull            # pulls qwen2.5-coder:7b
 
 # 3. Start the local server
 cendro serve           # serves on http://localhost:8000
@@ -93,7 +93,7 @@ Your Code (stays local)
        ↓
 FastAPI Server (localhost:8000)
        ↓
-Model via Ollama (qwen2.5-coder:3b today → fine-tuned cendro-3b next)
+Model via Ollama (qwen2.5-coder:7b today → fine-tuned cendro next)
        ↓
 Detailed Code Review
        ↑
@@ -164,7 +164,7 @@ pip install -e ".[train]"
 # A committed seed set already works without this step.
 python scripts/generate_preferences.py \
   --input dataset/raw/ \
-  --provider ollama --model qwen2.5-coder:3b \
+  --provider ollama --model qwen2.5-coder:14b \
   --output dataset/dpo_pairs.jsonl
 
 # Train with QLoRA + DPO (the committed seed dataset works out of the box)
