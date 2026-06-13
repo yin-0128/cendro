@@ -1,0 +1,40 @@
+# QLoRA + DPO config for Qwen2.5-Coder-3B-Instruct on an RTX 4060 (8GB VRAM).
+# Everything here is sized to stay inside the 8GB envelope. See docs/TRAINING.md.
+
+base_model: Qwen/Qwen2.5-Coder-3B-Instruct
+
+# 4-bit quantization (QLoRA) — never full fine-tune on this hardware.
+quant:
+  load_in_4bit: true
+  bnb_4bit_quant_type: nf4
+  bnb_4bit_use_double_quant: true
+  bnb_4bit_compute_dtype: bfloat16
+
+# LoRA adapter.
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+
+# Training hyperparameters (shared by SFT warm-up and DPO).
+train:
+  output_dir: model/output/cendro-3b
+  num_train_epochs: 1
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 8      # effective batch size 8
+  gradient_checkpointing: true
+  learning_rate: 0.0001
+  lr_scheduler_type: cosine
+  warmup_ratio: 0.03
+  logging_steps: 5
+  save_steps: 50
+  bf16: true
+  optim: paged_adamw_8bit             # 8-bit optimizer keeps VRAM low
+  max_length: 1024
+  max_prompt_length: 768
+  seed: 42
+
+# DPO-specific.
+dpo:
+  beta: 0.1

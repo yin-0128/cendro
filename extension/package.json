@@ -1,0 +1,50 @@
+{
+  "name": "cendro",
+  "displayName": "Cendro",
+  "description": "Local AI code reviewer - your code never leaves your machine.",
+  "version": "0.1.0",
+  "publisher": "yin-0128",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Machine Learning", "Linters"],
+  "main": "./dist/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      {
+        "command": "cendro.review",
+        "title": "Review with Cendro"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "cendro.review",
+          "when": "editorHasSelection",
+          "group": "1_modification"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Cendro",
+      "properties": {
+        "cendro.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:8000",
+          "description": "URL of the local Cendro FastAPI server."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  }
+}

@@ -1,0 +1,47 @@
+# Claude AI working files — local only
+.claude/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+*.egg
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Model files (too large for git)
+model/output/
+model/*.gguf
+model/*.bin
+*.safetensors
+dataset/raw/
+dataset/dpo_pairs.jsonl
+
+# Logs
+logs/
+*.log
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# VS Code (keep .vscode/settings.json but ignore personal)
+.vscode/launch.json
+.vscode/tasks.json
+
+# Node
+node_modules/
+extension/dist/
+*.vsix
+
+# Jupyter
+.ipynb_checkpoints/
