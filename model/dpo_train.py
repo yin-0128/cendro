@@ -62,7 +62,9 @@ def main() -> None:
 
     dataset = build_dpo_dataset(load_jsonl(args.dataset))
 
-    dpo_config = DPOConfig(
+    # Build kwargs, then keep only those the installed DPOConfig accepts. TRL renames/removes
+    # fields between versions (e.g. max_prompt_length); filtering keeps this robust across them.
+    dpo_kwargs = dict(
         output_dir=output_dir,
         beta=beta,
         num_train_epochs=t.get("num_train_epochs", 1),
@@ -80,6 +82,13 @@ def main() -> None:
         max_prompt_length=t.get("max_prompt_length", 768),
         seed=t.get("seed", 42),
     )
+    from dataclasses import fields
+
+    valid = {f.name for f in fields(DPOConfig)}
+    dropped = sorted(k for k in dpo_kwargs if k not in valid)
+    if dropped:
+        print(f"[dpo_train] DPOConfig ignores unsupported args for this TRL version: {dropped}")
+    dpo_config = DPOConfig(**{k: v for k, v in dpo_kwargs.items() if k in valid})
 
     trainer = DPOTrainer(
         model=model,
