@@ -62,11 +62,12 @@
 ## 🔁 Workflow 5: Generating DPO Training Data
 
 ```
-1. Collect raw code snippets (from dataset/raw/)
-2. Run: python scripts/generate_preferences.py
-   → Uses GPT-4 API to generate good/bad review pairs
-3. Human review sample (at least 10%) for quality
-4. Store in dataset/dpo_pairs.jsonl
+1. Collect raw code snippets (dataset/samples/ committed, or dataset/raw/ for your own)
+2. Run: python scripts/generate_preferences.py --provider ollama --model qwen2.5-coder:14b
+   → FREE + local by default (local Ollama judge). --provider anthropic/openai optional (cloud, paid)
+   → Or hand-author reviews via scripts/build_gold_dataset.py for top quality
+3. Human-review the pairs (the local judge can miss subtle bugs) — fix weak `chosen` reviews
+4. Store in dataset/dpo_pairs.jsonl; curate the good ones into the committed set
 5. Log dataset size + date in MEMORY.md
 ```
 

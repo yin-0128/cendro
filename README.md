@@ -52,7 +52,7 @@ suggestions:
 ```
 
 > Today the MVP serves an off-the-shelf `qwen2.5-coder:7b` model through the same prompt and
-> API. The DPO fine-tune that produces the opinionated `cendro-3b` model is the next milestone.
+> API. The DPO fine-tune that produces the opinionated `cendro-7b` model is the next milestone.
 
 ---
 
@@ -100,7 +100,7 @@ Detailed Code Review
 CLI / VS Code Extension / GitHub Action (planned)
 ```
 
-The plan is a **3B-parameter model fine-tuned with QLoRA + DPO** on good-vs-bad code review
+The plan is a **7B model (Qwen2.5-Coder-7B) fine-tuned with QLoRA + DPO** on good-vs-bad code review
 pairs — small enough to run locally, tuned to actually help. See
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full design.
 
@@ -167,7 +167,7 @@ python scripts/generate_preferences.py \
   --provider ollama --model qwen2.5-coder:14b \
   --output dataset/dpo_pairs.jsonl
 
-# Train with QLoRA + DPO (a committed 24-pair dataset works out of the box)
+# Train with QLoRA + DPO (a committed 44-pair dataset works out of the box)
 python model/dpo_train.py \
   --config configs/qlora_7b.yaml \
   --dataset dataset/train_pairs.jsonl \
@@ -189,14 +189,14 @@ Full guide: [docs/TRAINING.md](docs/TRAINING.md)
 
 ## 📊 Benchmarks (target — not yet measured)
 
-These are the **goals** we will evaluate against once `cendro-3b` is trained. No numbers are
+These are the **goals** we will evaluate against once `cendro-7b` is trained. No numbers are
 claimed yet.
 
 | Metric | Target |
 |--------|--------|
 | Specificity (mentions concrete issue + fix) | High |
 | False-positive rate | Low |
-| VRAM at inference (3B, 4-bit) | ~4 GB |
+| VRAM at inference (7B, 4-bit) | ~5 GB |
 | Local latency (RTX 4060) | Interactive |
 
 Evaluation harness: `model/evaluate.py` (see [docs/TRAINING.md](docs/TRAINING.md)).
@@ -209,7 +209,7 @@ Evaluation harness: `model/evaluate.py` (see [docs/TRAINING.md](docs/TRAINING.md
 - [x] `cendro` CLI
 - [x] QLoRA + DPO training scripts
 - [x] GitHub Action (PR review) — Claude API / self-hosted backends
-- [ ] Trained `cendro-3b` model on a real DPO dataset
+- [ ] Trained `cendro-7b` model on a real DPO dataset
 - [ ] VS Code extension (Marketplace release)
 - [ ] Streaming responses
 - [ ] Language-specific model variants (Python, TypeScript, Go)

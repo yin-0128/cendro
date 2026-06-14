@@ -34,7 +34,7 @@
                        ▼
 ┌──────────────────────────────────────────────────────────┐
 │              Fine-tuned Model                             │
-│   Base: Qwen2.5-Coder-3B (or Phi-3.5-mini)              │
+│   Base: Qwen2.5-Coder-7B (3B for low VRAM)             │
 │   Training: QLoRA → merged → GGUF quantized              │
 │   Method: DPO on code review preference pairs            │
 └──────────────────────────────────────────────────────────┘
@@ -83,8 +83,9 @@
 
 ## 🚧 Known Limitations
 
-- 8GB VRAM caps model at 7B max (3B recommended)
-- DPO requires GPT-4 API for data generation (cost: ~$5-20 one time)
+- 8GB VRAM caps model at 7B max (7B for quality; 3B for faster/safer training)
+- DPO data generation is free and local by default (local Ollama judge, or the hand-authored
+  gold set); cloud judges (Claude/OpenAI) are optional for higher-quality pairs
 - GitHub Action requires user to self-host or use cloud API
 - No streaming response yet (planned)
 

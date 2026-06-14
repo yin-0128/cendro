@@ -11,7 +11,7 @@
 **Type:** Fine-tuned local code review AI + VS Code Extension + GitHub Action
 **Goal:** Privacy-first, self-hosted AI code reviewer — open source core, paid hosted tier
 **Primary Language:** Python (backend), TypeScript (VS Code extension)
-**Model Base:** `Qwen/Qwen2.5-Coder-3B-Instruct`
+**Model Base:** `Qwen/Qwen2.5-Coder-7B-Instruct` (3B available for faster/safer training)
 **Training Method:** QLoRA + DPO (Direct Preference Optimization)
 
 ---
@@ -41,7 +41,7 @@ project-root/
 │   ├── train.py            ← QLoRA SFT training script
 │   ├── dpo_train.py        ← DPO preference training
 │   └── evaluate.py         ← Eval harness
-├── configs/                ← Training YAML configs (qlora_3b.yaml)
+├── configs/                ← Training YAML configs (qlora_7b.yaml, qlora_3b.yaml)
 ├── dataset/                ← Training data (seed_pairs.jsonl committed)
 ├── scripts/                ← generate_preferences.py, convert_to_gguf.py
 ├── extension/              ← VS Code extension (TypeScript)
@@ -64,7 +64,7 @@ project-root/
 
 **Rules from hardware:**
 - Always use **4-bit QLoRA** — never full fine-tune
-- Max model size: **7B parameters** (3B preferred for speed)
+- Max model size: **7B parameters** (7B is the quality target; 3B for faster/safer training)
 - Batch size: keep low (1–2) unless tested
 - Use `bfloat16` or `float16`, never `float32`
 - Always check VRAM before suggesting training configs
@@ -116,8 +116,8 @@ torch>=2.2
 ## 📌 Important Decisions Log
 > Move detailed entries to .claude/MEMORY.md. Keep only the latest 3 here.
 
-- `2026-06-13` — Locked base model to **Qwen2.5-Coder-3B-Instruct** (fits 8GB VRAM with 4-bit QLoRA; strong code performance for its size).
-- `2026-06-13` — MVP serves an **off-the-shelf Ollama model first** (`qwen2.5-coder:3b`) so the end-to-end flow works before any fine-tuning.
+- `2026-06-13` — Upgraded base model to **Qwen2.5-Coder-7B-Instruct** (best quality that fits 8GB for inference; QLoRA 7B training is tight — train in WSL2, `configs/qlora_7b.yaml`). 3B remains the fast/safe fallback.
+- `2026-06-13` — Committed DPO data is **hand-authored** (`dataset/gold_pairs.jsonl` + `seed_pairs.jsonl` → `train_pairs.jsonl`, 44 pairs); the local-judge generator stays for growing data but its output must be human-reviewed.
 - `2026-06-13` — DPO preference data generation defaults to a **free, local Ollama judge** (privacy-first); `--provider anthropic`/`openai` are optional higher-quality cloud judges.
 
 ---
