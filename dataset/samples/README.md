@@ -1,10 +1,8 @@
 # Sample code corpus
 
-A small, committed set of deliberately flawed code snippets across several languages. Each file
-contains realistic, reviewable issues (security, correctness, performance, error handling).
-
-These are the **input** to DPO data generation — feed them to the judge to produce
-`{prompt, chosen, rejected}` pairs:
+A committed set of ~32 deliberately flawed code snippets across 8 languages (Python, JS, TS,
+Go, Rust, Java, Bash). Each file contains realistic, reviewable issues. These are the **input**
+to DPO data generation:
 
 ```bash
 python scripts/generate_preferences.py \
@@ -13,20 +11,26 @@ python scripts/generate_preferences.py \
   --output dataset/dpo_pairs.jsonl
 ```
 
-| File | Primary issue |
-|------|---------------|
-| `py_sql_injection.py` | SQL injection via string building / f-strings |
-| `py_cache_unbounded.py` | Unbounded cache + mutable default argument |
-| `py_file_resource.py` | File handles never closed; no encoding |
-| `py_path_traversal.py` | Path traversal on user-supplied filenames |
-| `py_password_handling.py` | MD5 password hashing; non-constant-time compare |
-| `py_division_stats.py` | Division by zero (empty list / zero base) |
-| `py_race_condition.py` | Unsynchronized shared counter across threads |
-| `py_n_plus_one.py` | N+1 query pattern in a loop |
-| `py_input_validation.py` | Unvalidated int parsing of request params |
-| `js_async_sequential.js` | Off-by-one loop + sequential awaits |
-| `ts_null_deref.ts` | Optional deref without a guard; unsafe `!` |
-| `go_ignored_error.go` | Discarded errors from I/O and unmarshal |
+## Coverage by category
 
-> `dataset/raw/` (git-ignored) is for your *own* private code samples. This `samples/` directory
-> is the shareable, reproducible starter corpus.
+| Category | Examples |
+|----------|----------|
+| **Injection** | SQL injection, OS command injection, `eval`/`Function` of user input |
+| **Unsafe deserialization** | `pickle.loads` of untrusted data |
+| **Auth / access control** | missing ownership/permission checks before delete & read |
+| **Crypto / secrets** | MD5 password hashing, `random` for tokens/session ids |
+| **Path / traversal** | unsanitized filenames into file paths |
+| **Correctness** | off-by-one, null/None deref, `is` vs `==`, loose `==`, dict mutated while iterating, naive datetimes, division by zero |
+| **Concurrency** | unsynchronized shared counter, Go loop-var capture in goroutines |
+| **Performance** | string `+=` in loops, `re.compile` inside loops, N+1 queries |
+| **Error handling** | bare/`except Exception` swallowing, infinite blind retry, discarded Go errors |
+| **Resource leaks** | unclosed files (Python/Java), missing request timeouts |
+| **Async** | sequential awaits, floating/unawaited promises (JS/TS) |
+| **Money** | `float` for currency |
+| **Shell** | unquoted variables, `rm -rf $VAR` |
+
+Add more files here (any recognized extension: `.py .js .ts .go .rs .java .rb .c .cpp .sh .sql
+.cs .kt .php`) and rerun the generator to grow the dataset.
+
+> `dataset/raw/` (git-ignored) is for your *own* private code. This `samples/` directory is the
+> shareable, reproducible starter corpus.

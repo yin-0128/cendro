@@ -50,6 +50,7 @@ Code:
 _EXT_LANG = {
     ".py": "python", ".ts": "typescript", ".js": "javascript", ".go": "go",
     ".rs": "rust", ".java": "java", ".rb": "ruby", ".c": "c", ".cpp": "cpp",
+    ".sh": "bash", ".sql": "sql", ".cs": "csharp", ".kt": "kotlin", ".php": "php",
 }
 
 
