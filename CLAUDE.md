@@ -78,8 +78,8 @@ project-root/
 2. `CLAUDE.md` — current status, last task, next task
 3. Relevant doc file if workflow/tool/skill changed
 
-**Current Status:** `7B serving verified; free/local 24-pair DPO dataset generated & committed`
-**Last Completed Task:** `Upgraded base to Qwen2.5-Coder-7B; generated dataset/curated+train_pairs via local 14b judge; verified 7B /review`
+**Current Status:** `7B serving verified; hand-authored 44-pair gold DPO dataset committed`
+**Last Completed Task:** `Built dataset/gold_pairs.jsonl (32 hand-authored expert reviews) + train_pairs.jsonl (44); dropped weak 14b set`
 **Next Task:** `In WSL2: run QLoRA+DPO (configs/qlora_7b.yaml on dataset/train_pairs.jsonl); GGUF-export; test Action on a live PR`
 **Blockers:** `None`
 
