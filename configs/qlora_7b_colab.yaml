@@ -1,0 +1,39 @@
+# QLoRA + DPO config for Qwen2.5-Coder-7B on a FREE Colab T4 (16GB, Turing).
+# Differs from qlora_7b.yaml ONLY where the T4 forces it:
+#   - T4 (Turing) has NO hardware bfloat16 -> compute_dtype + bf16 switched to float16.
+#   - save_steps lowered so the tiny (~308-pair) run still checkpoints to Drive mid-train.
+# Use this on Colab; use qlora_7b.yaml on an Ampere+ GPU (e.g. local 4060 under WSL2).
+
+base_model: Qwen/Qwen2.5-Coder-7B-Instruct
+
+quant:
+  load_in_4bit: true
+  bnb_4bit_quant_type: nf4
+  bnb_4bit_use_double_quant: true
+  bnb_4bit_compute_dtype: float16     # T4 cannot do bfloat16
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+
+train:
+  output_dir: model/output/cendro-7b
+  num_train_epochs: 1
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 16     # effective batch 16
+  gradient_checkpointing: true
+  learning_rate: 0.0001
+  lr_scheduler_type: cosine
+  warmup_ratio: 0.03
+  logging_steps: 5
+  save_steps: 10                      # ~308 pairs / batch 16 => ~19 steps; checkpoint often
+  bf16: false                         # T4: no bf16
+  optim: paged_adamw_8bit
+  max_length: 768
+  max_prompt_length: 512
+  seed: 42
+
+dpo:
+  beta: 0.1

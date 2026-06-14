@@ -3,8 +3,8 @@
 Trains the model to prefer specific, opinionated reviews (`chosen`) over generic ones
 (`rejected`) on {prompt, chosen, rejected} JSONL. 4-bit QLoRA, sized for 8GB VRAM.
 
-    python model/dpo_train.py --config configs/qlora_3b.yaml \
-        --dataset dataset/seed_pairs.jsonl --output model/output/cendro-3b
+    python model/dpo_train.py --config configs/qlora_7b.yaml \
+        --dataset dataset/train_pairs.jsonl --output model/output/cendro-7b
 
 Optionally start from an SFT adapter produced by train.py via --sft-adapter.
 """
@@ -34,17 +34,22 @@ def build_dpo_dataset(rows: list[dict]):
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="DPO fine-tune for Cendro.")
-    parser.add_argument("--config", default="configs/qlora_3b.yaml")
-    parser.add_argument("--dataset", default="dataset/seed_pairs.jsonl")
+    parser.add_argument("--config", default="configs/qlora_7b.yaml")
+    parser.add_argument("--dataset", default="dataset/train_pairs.jsonl")
     parser.add_argument("--output", default=None, help="Override output_dir from config.")
     parser.add_argument(
         "--sft-adapter", default=None, help="Optional SFT LoRA adapter to start from."
+    )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume from the latest checkpoint in output_dir (e.g. after a Colab disconnect).",
     )
     args = parser.parse_args()
 
     cfg: Config = load_config(args.config)
     t = cfg.section("train")
-    output_dir = args.output or t.get("output_dir", "model/output/cendro-3b")
+    output_dir = args.output or t.get("output_dir", "model/output/cendro-7b")
     beta = cfg.section("dpo").get("beta", 0.1)
 
     from peft import PeftModel, prepare_model_for_kbit_training
@@ -84,7 +89,7 @@ def main() -> None:
         # peft_config wires LoRA when not resuming from an SFT adapter.
         peft_config=None if args.sft_adapter else lora_config(cfg),
     )
-    trainer.train()
+    trainer.train(resume_from_checkpoint=True if args.resume else None)
     trainer.save_model(output_dir)
     tokenizer.save_pretrained(output_dir)
     print(f"DPO adapter saved to {output_dir}")
