@@ -54,6 +54,8 @@ packages = ["cendro", "api", "model"]
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+# dataset/samples holds deliberately buggy code (training material) — don't lint it.
+extend-exclude = ["dataset"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]

@@ -88,7 +88,7 @@ preference data.
 
 ```bash
 # 7B (quality target). Swap to configs/qlora_3b.yaml for the fast/safe run.
-python model/train.py --config configs/qlora_7b.yaml --dataset dataset/seed_pairs.jsonl \
+python model/train.py --config configs/qlora_7b.yaml --dataset dataset/train_pairs.jsonl \
   --output model/output/sft
 ```
 
@@ -97,7 +97,7 @@ python model/train.py --config configs/qlora_7b.yaml --dataset dataset/seed_pair
 ```bash
 python model/dpo_train.py \
   --config configs/qlora_7b.yaml \
-  --dataset dataset/seed_pairs.jsonl \
+  --dataset dataset/train_pairs.jsonl \
   --output model/output/cendro-7b
 ```
 

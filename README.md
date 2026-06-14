@@ -167,15 +167,16 @@ python scripts/generate_preferences.py \
   --provider ollama --model qwen2.5-coder:14b \
   --output dataset/dpo_pairs.jsonl
 
-# Train with QLoRA + DPO (the committed seed dataset works out of the box)
+# Train with QLoRA + DPO (a committed 24-pair dataset works out of the box)
 python model/dpo_train.py \
-  --config configs/qlora_3b.yaml \
-  --dataset dataset/seed_pairs.jsonl \
-  --output model/output/cendro-3b
+  --config configs/qlora_7b.yaml \
+  --dataset dataset/train_pairs.jsonl \
+  --output model/output/cendro-7b
 
 # Export to GGUF and serve your model
-python scripts/convert_to_gguf.py --model model/output/cendro-3b --outfile model/cendro-3b.gguf
-cendro serve --model cendro-3b
+python scripts/convert_to_gguf.py --model model/output/cendro-7b \
+  --base-model Qwen/Qwen2.5-Coder-7B-Instruct --outfile model/cendro-7b.gguf --name cendro-7b
+cendro serve --model cendro-7b
 ```
 
 > **Want higher-quality training pairs?** `--provider anthropic` (or `openai`) uses a frontier

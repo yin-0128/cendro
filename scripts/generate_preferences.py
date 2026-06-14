@@ -175,10 +175,13 @@ def main() -> None:
     written = 0
     with open(args.output, "w", encoding="utf-8") as out:
         for path in files:
+            language = guess_language(path)
+            if language == "text":  # skip non-code files (README, docs, etc.)
+                print(f"  skip {path}: not a recognized code file")
+                continue
             code = path.read_text(encoding="utf-8", errors="ignore")
             if not code.strip():
                 continue
-            language = guess_language(path)
             try:
                 pair = judge(code, language)
             except Exception as exc:  # one bad sample shouldn't kill the run

@@ -78,9 +78,9 @@ project-root/
 2. `CLAUDE.md` — current status, last task, next task
 3. Relevant doc file if workflow/tool/skill changed
 
-**Current Status:** `MVP verified end-to-end; pushed to GitHub; GitHub Action built`
-**Last Completed Task:** `Pushed to github.com/yin-0128/cendro; built PR-review Action; ran live /review against qwen2.5-coder:3b`
-**Next Task:** `Generate a real DPO dataset and run the first QLoRA+DPO training; test the Action on a live PR`
+**Current Status:** `7B serving verified; free/local 24-pair DPO dataset generated & committed`
+**Last Completed Task:** `Upgraded base to Qwen2.5-Coder-7B; generated dataset/curated+train_pairs via local 14b judge; verified 7B /review`
+**Next Task:** `In WSL2: run QLoRA+DPO (configs/qlora_7b.yaml on dataset/train_pairs.jsonl); GGUF-export; test Action on a live PR`
 **Blockers:** `None`
 
 ---
