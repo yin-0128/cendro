@@ -36,6 +36,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="DPO fine-tune for Cendro.")
     parser.add_argument("--config", default="configs/qlora_7b.yaml")
     parser.add_argument("--dataset", default="dataset/train_pairs.jsonl")
+    parser.add_argument(
+        "--eval-dataset",
+        default=None,
+        help="Optional val split (e.g. dataset/val_pairs.jsonl from scripts/split_dataset.py). "
+        "Enables eval-loss tracking, best-checkpoint, and early stopping. Must NOT overlap "
+        "the train set or the held-out gate.",
+    )
     parser.add_argument("--output", default=None, help="Override output_dir from config.")
     parser.add_argument(
         "--sft-adapter", default=None, help="Optional SFT LoRA adapter to start from."
@@ -61,6 +68,8 @@ def main() -> None:
         model = PeftModel.from_pretrained(model, args.sft_adapter, is_trainable=True)
 
     dataset = build_dpo_dataset(load_jsonl(args.dataset))
+    eval_dataset = build_dpo_dataset(load_jsonl(args.eval_dataset)) if args.eval_dataset else None
+    do_eval = eval_dataset is not None
 
     # Build kwargs, then keep only those the installed DPOConfig accepts. TRL renames/removes
     # fields between versions (e.g. max_prompt_length); filtering keeps this robust across them.
@@ -69,6 +78,7 @@ def main() -> None:
         beta=beta,
         num_train_epochs=t.get("num_train_epochs", 1),
         per_device_train_batch_size=t.get("per_device_train_batch_size", 1),
+        per_device_eval_batch_size=t.get("per_device_eval_batch_size", 1),
         gradient_accumulation_steps=t.get("gradient_accumulation_steps", 8),
         gradient_checkpointing=t.get("gradient_checkpointing", True),
         learning_rate=t.get("learning_rate", 1e-4),
@@ -81,6 +91,13 @@ def main() -> None:
         max_length=t.get("max_length", 1024),
         max_prompt_length=t.get("max_prompt_length", 768),
         seed=t.get("seed", 42),
+        # Eval/early-stop only when a val split is given; otherwise force off so DPOConfig
+        # doesn't demand an eval_dataset it doesn't have.
+        eval_strategy=t.get("eval_strategy", "steps") if do_eval else "no",
+        eval_steps=t.get("eval_steps", 10),
+        load_best_model_at_end=t.get("load_best_model_at_end", True) if do_eval else False,
+        metric_for_best_model=t.get("metric_for_best_model", "eval_loss"),
+        greater_is_better=t.get("greater_is_better", False),
     )
     from dataclasses import fields
 
@@ -90,11 +107,22 @@ def main() -> None:
         print(f"[dpo_train] DPOConfig ignores unsupported args for this TRL version: {dropped}")
     dpo_config = DPOConfig(**{k: v for k, v in dpo_kwargs.items() if k in valid})
 
+    # Stop once eval loss stops improving (only meaningful with an eval split).
+    callbacks = []
+    if do_eval:
+        from transformers import EarlyStoppingCallback
+
+        callbacks.append(
+            EarlyStoppingCallback(early_stopping_patience=t.get("early_stopping_patience", 3))
+        )
+
     trainer = DPOTrainer(
         model=model,
         args=dpo_config,
         train_dataset=dataset,
+        eval_dataset=eval_dataset,
         processing_class=tokenizer,
+        callbacks=callbacks,
         # peft_config wires LoRA when not resuming from an SFT adapter.
         peft_config=None if args.sft_adapter else lora_config(cfg),
     )

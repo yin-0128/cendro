@@ -3,10 +3,10 @@
 Pipeline:
   1. Load base model + LoRA adapter, merge weights, save the merged HF model.
   2. Convert the merged model to GGUF via llama.cpp's convert script (must be available).
-  3. Write a Modelfile so `cendro pull --model cendro-3b` can register it with Ollama.
+  3. Write a Modelfile so `cendro pull --model cendro-7b` can register it with Ollama.
 
-    python scripts/convert_to_gguf.py --model model/output/cendro-3b \
-        --outfile model/cendro-3b.gguf
+    python scripts/convert_to_gguf.py --model model/output/cendro-7b \
+        --outfile model/cendro-7b.gguf
 
 Requires llama.cpp checked out (point --llama-cpp at it, or set LLAMA_CPP_DIR). The actual
 GGUF conversion is delegated to llama.cpp's `convert_hf_to_gguf.py`.
@@ -20,8 +20,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-DEFAULT_BASE = "Qwen/Qwen2.5-Coder-3B-Instruct"
-SYSTEM_PROMPT_NOTE = "Cendro local code reviewer."
+from api.prompts import SYSTEM_PROMPT
+
+DEFAULT_BASE = "Qwen/Qwen2.5-Coder-7B-Instruct"
 
 
 def merge_adapter(base_model: str, adapter_dir: str, merged_dir: str) -> None:
@@ -53,10 +54,13 @@ def to_gguf(merged_dir: str, outfile: str, llama_cpp_dir: str, quant: str) -> No
 def write_modelfile(outfile: str, model_name: str) -> str:
     modelfile = Path(outfile).with_suffix(".Modelfile")
     gguf_abs = Path(outfile).resolve()
+    # Embed the FULL review persona (shared with api/prompts.py) so the model behaves like
+    # Cendro even when run directly via `ollama run cendro-7b`, without the FastAPI layer.
+    # Triple-quoted SYSTEM keeps the multi-line prompt (and its inner quotes) intact.
     modelfile.write_text(
-        f'FROM {gguf_abs}\n'
-        f'SYSTEM "{SYSTEM_PROMPT_NOTE}"\n'
-        f'PARAMETER temperature 0.2\n',
+        f"FROM {gguf_abs}\n"
+        f'SYSTEM """{SYSTEM_PROMPT.strip()}"""\n'
+        f"PARAMETER temperature 0.2\n",
         encoding="utf-8",
     )
     print(f"Modelfile written to {modelfile}")
@@ -67,10 +71,10 @@ def write_modelfile(outfile: str, model_name: str) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Merge LoRA + export GGUF for Ollama.")
     parser.add_argument("--model", required=True, help="Trained LoRA adapter directory.")
-    parser.add_argument("--outfile", default="model/cendro-3b.gguf")
+    parser.add_argument("--outfile", default="model/cendro-7b.gguf")
     parser.add_argument("--base-model", default=DEFAULT_BASE)
     parser.add_argument("--merged-dir", default="model/output/merged")
-    parser.add_argument("--name", default="cendro-3b", help="Ollama model name.")
+    parser.add_argument("--name", default="cendro-7b", help="Ollama model name.")
     parser.add_argument("--quant", default="q4_k_m", help="GGUF outtype (e.g. q4_k_m, f16).")
     parser.add_argument("--llama-cpp", default=os.environ.get("LLAMA_CPP_DIR", "llama.cpp"))
     args = parser.parse_args()

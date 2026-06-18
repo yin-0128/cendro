@@ -27,8 +27,8 @@
 | FastAPI inference server (`/review`, `/health`, `/models`) | ✅ Working (via Ollama) |
 | `cendro` CLI (`serve` / `review` / `pull`) | ✅ Working |
 | VS Code extension | 🧪 Minimal, runs from source (F5) |
-| QLoRA + DPO training pipeline | ✅ Scripts ready, not yet trained on real data |
-| Fine-tuned `cendro` model | ⛔ Not trained yet — MVP uses off-the-shelf `qwen2.5-coder:7b` |
+| QLoRA + DPO training pipeline | ✅ Scripts ready + **~333-pair DPO dataset built** (289 distilled + 44 hand-authored) |
+| Fine-tuned `cendro` model | ⛔ Not trained yet — dataset is ready; **7B** is the target. MVP serves off-the-shelf `qwen2.5-coder:7b` |
 | GitHub Action (PR review) | 🧪 Built, not yet battle-tested — Claude API or self-hosted Ollama backend |
 | Published packages (PyPI / Marketplace) | ⛔ Planned |
 
@@ -160,18 +160,23 @@ cloud. **Requires:** NVIDIA GPU with 8GB+ VRAM.
 # Install training deps
 pip install -e ".[train]"
 
-# (Optional) grow the dataset — FREE & local, judged by a model you've pulled in Ollama.
-# A committed seed set already works without this step.
-python scripts/generate_preferences.py \
-  --input dataset/raw/ \
-  --provider ollama --model qwen2.5-coder:14b \
-  --output dataset/dpo_pairs.jsonl
+# (Optional) GROW THE DATASET — FREE. Two steps:
+#   1. Synthesize buggy code snippets across a bug taxonomy x languages.
+#   2. Distill {chosen, rejected} review pairs from them with a strong judge.
+# A committed dataset already works without this; this is how you scale it up.
+python scripts/generate_samples.py --provider groq --output-dir dataset/raw --per-combo 2
+python scripts/generate_preferences.py --input dataset/raw/ \
+  --provider groq --output dataset/distilled_pairs.jsonl     # needs free GROQ_API_KEY
 
-# Train with QLoRA + DPO (a committed 44-pair dataset works out of the box)
+# Train with QLoRA + DPO (7B is the target; trains best on a 16GB GPU / Colab T4)
 python model/dpo_train.py \
   --config configs/qlora_7b.yaml \
   --dataset dataset/train_pairs.jsonl \
   --output model/output/cendro-7b
+
+# Prove the fine-tune actually beats the base model before shipping
+python model/evaluate.py --model model/output/cendro-7b --compare-base \
+  --dataset dataset/heldout_pairs.jsonl
 
 # Export to GGUF and serve your model
 python scripts/convert_to_gguf.py --model model/output/cendro-7b \
@@ -179,9 +184,10 @@ python scripts/convert_to_gguf.py --model model/output/cendro-7b \
 cendro serve --model cendro-7b
 ```
 
-> **Want higher-quality training pairs?** `--provider anthropic` (or `openai`) uses a frontier
-> cloud model as the judge — better pairs, but it sends code to that API and costs money. The
-> default `ollama` provider keeps everything free and on your machine.
+> **Judge options (the model that writes the training reviews):** the default `ollama` provider
+> is free and fully local. **`--provider groq`** is also **free** (generous tier, no local GPU)
+> and uses a much stronger 70B judge — the recommended balance. `--provider anthropic`/`openai`
+> are paid cloud judges for the highest quality.
 
 Full guide: [docs/TRAINING.md](docs/TRAINING.md)
 
@@ -209,7 +215,8 @@ Evaluation harness: `model/evaluate.py` (see [docs/TRAINING.md](docs/TRAINING.md
 - [x] `cendro` CLI
 - [x] QLoRA + DPO training scripts
 - [x] GitHub Action (PR review) — Claude API / self-hosted backends
-- [ ] Trained `cendro-7b` model on a real DPO dataset
+- [x] DPO dataset built (~333 pairs: distilled via Groq/local + hand-authored)
+- [ ] Trained `cendro-7b` model + published to Ollama (`ollama pull yin-0128/cendro-7b`)
 - [ ] VS Code extension (Marketplace release)
 - [ ] Streaming responses
 - [ ] Language-specific model variants (Python, TypeScript, Go)

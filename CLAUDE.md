@@ -11,7 +11,7 @@
 **Type:** Fine-tuned local code review AI + VS Code Extension + GitHub Action
 **Goal:** Privacy-first, self-hosted AI code reviewer — open source core, paid hosted tier
 **Primary Language:** Python (backend), TypeScript (VS Code extension)
-**Model Base:** `Qwen/Qwen2.5-Coder-7B-Instruct` (3B available for faster/safer training)
+**Model Base:** `Qwen/Qwen2.5-Coder-7B-Instruct` — **chosen target** (quality + the size the active local-LLM community runs daily). End-user hardware is intentionally not a constraint.
 **Training Method:** QLoRA + DPO (Direct Preference Optimization)
 
 ---
@@ -78,10 +78,10 @@ project-root/
 2. `CLAUDE.md` — current status, last task, next task
 3. Relevant doc file if workflow/tool/skill changed
 
-**Current Status:** `7B serving verified; hand-authored 44-pair gold DPO dataset committed`
-**Last Completed Task:** `Built dataset/gold_pairs.jsonl (32 hand-authored expert reviews) + train_pairs.jsonl (44); dropped weak 14b set`
-**Next Task:** `In WSL2: run QLoRA+DPO (configs/qlora_7b.yaml on dataset/train_pairs.jsonl); GGUF-export; test Action on a live PR`
-**Blockers:** `None`
+**Current Status:** `Dataset scaled to ~333 DPO pairs (289 distilled + 44 hand-authored). 7B locked as the target (quality + reach; user hardware NOT a concern). Model not yet trained.`
+**Last Completed Task:** `Part A (data) done — scripts/generate_samples.py synthesized 289 buggy snippets (6 langs); free Groq judge added to generate_preferences.py → dataset/distilled_pairs.jsonl (289). Also: evaluate.py --compare-base, real SYSTEM_PROMPT in the GGUF Modelfile.`
+**Next Task:** `(1) Merge distilled+gold+seed → train_pairs.jsonl + carve a held-out test slice. (2) QLoRA+DPO on configs/qlora_7b.yaml — WSL2 (Unsloth) or free Colab T4. (3) evaluate.py --compare-base to PROVE > base. (4) GGUF-export + ollama push yin-0128/cendro-7b. (5) README/eval-number update + flip DEFAULT_MODEL to cendro-7b.`
+**Blockers:** `None — 7B QLoRA is tight on the 8GB 4060; prefer free Colab T4 (16GB) for the training run.`
 
 ---
 
@@ -116,9 +116,9 @@ torch>=2.2
 ## 📌 Important Decisions Log
 > Move detailed entries to .claude/MEMORY.md. Keep only the latest 3 here.
 
-- `2026-06-13` — Upgraded base model to **Qwen2.5-Coder-7B-Instruct** (best quality that fits 8GB for inference; QLoRA 7B training is tight — train in WSL2, `configs/qlora_7b.yaml`). 3B remains the fast/safe fallback.
-- `2026-06-13` — Committed DPO data is **hand-authored** (`dataset/gold_pairs.jsonl` + `seed_pairs.jsonl` → `train_pairs.jsonl`, 44 pairs); the local-judge generator stays for growing data but its output must be human-reviewed.
-- `2026-06-13` — DPO preference data generation defaults to a **free, local Ollama judge** (privacy-first); `--provider anthropic`/`openai` are optional higher-quality cloud judges.
+- `2026-06-15` — **Direction (user):** optimize for **quality + adoption/visibility**, NOT end-user hardware. Target model locked to **Qwen2.5-Coder-7B** (the size the active local-LLM community runs daily). The 3B "low-hardware" angle is dropped. 7B QLoRA is tight on the 8GB 4060 → train in WSL2 (Unsloth) or free Colab T4 (16GB).
+- `2026-06-15` — Built a real **distillation pipeline**: `scripts/generate_samples.py` (synthesize buggy snippets across a bug-taxonomy × 6 langs) + a free **Groq** judge in `generate_preferences.py`. Produced `dataset/distilled_pairs.jsonl` (289 pairs). `evaluate.py --compare-base` added to prove the fine-tune beats base *before* shipping; GGUF Modelfile now embeds the full review SYSTEM_PROMPT.
+- `2026-06-13` — Committed hand-authored "gold" pairs (`gold_pairs.jsonl` 32 + `seed_pairs.jsonl` 12) stay as **quality anchors** merged into `train_pairs.jsonl` alongside the distilled set.
 
 ---
 

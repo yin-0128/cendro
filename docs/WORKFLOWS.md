@@ -59,15 +59,21 @@
 
 ---
 
-## 🔁 Workflow 5: Generating DPO Training Data
+## 🔁 Workflow 5: Generating DPO Training Data (distillation)
 
 ```
-1. Collect raw code snippets (dataset/samples/ committed, or dataset/raw/ for your own)
-2. Run: python scripts/generate_preferences.py --provider ollama --model qwen2.5-coder:14b
-   → FREE + local by default (local Ollama judge). --provider anthropic/openai optional (cloud, paid)
-   → Or hand-author reviews via scripts/build_gold_dataset.py for top quality
-3. Human-review the pairs (the local judge can miss subtle bugs) — fix weak `chosen` reviews
-4. Store in dataset/dpo_pairs.jsonl; curate the good ones into the committed set
+1. Synthesize buggy code snippets:
+   python scripts/generate_samples.py --provider groq --output-dir dataset/raw --per-combo 2
+   → free GROQ_API_KEY (strong 70B), or --provider ollama for fully local
+2. Distill {chosen, rejected} pairs from them:
+   python scripts/generate_preferences.py --input dataset/raw/ --provider groq \
+     --output dataset/distilled_pairs.jsonl
+   → judge quality matters most: groq (free 70B) >> small local model
+   → --provider anthropic/openai = paid cloud (highest quality)
+   → or hand-author via scripts/build_gold_dataset.py for top quality anchors
+3. Spot-check ~10% of the pairs; drop low-signal ones
+4. Merge distilled + gold + seed → dataset/train_pairs.jsonl
+   Carve ~20-30 pairs into dataset/heldout_pairs.jsonl (NOT used in training)
 5. Log dataset size + date in MEMORY.md
 ```
 

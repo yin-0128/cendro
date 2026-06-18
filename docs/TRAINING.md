@@ -10,7 +10,16 @@ End-to-end guide for producing the `cendro` model with **QLoRA + DPO** on a sing
 > **Hardware rule:** 4-bit QLoRA only — never full fine-tuning. Keep `per_device_train_batch_size`
 > at 1 and use gradient accumulation. Use `bfloat16` compute dtype.
 
-## 0a. Run training under WSL2 (recommended on Windows)
+## 0a. Where to run the training
+
+7B QLoRA is **tight on an 8GB GPU** (it can OOM). Two reliable options:
+
+- **Free Google Colab (T4, 16GB) — easiest for 7B.** No local setup; the 16GB GPU fits 7B
+  comfortably. Upload `dataset/train_pairs.jsonl`, run the `dpo_train.py` step in a notebook,
+  download `model/output/cendro-7b`. Recommended if local setup is a hassle.
+- **WSL2 (Ubuntu) on your own GPU.** Fully local/private. On 8GB, use Unsloth (see below).
+
+### WSL2 setup (Windows)
 
 QLoRA on native Windows often fights `bitsandbytes`/Triton. WSL2 (Ubuntu) is the reliable path
 and the only supported environment for Unsloth.
@@ -51,35 +60,44 @@ nvidia-smi
 
 ## 1. Get a dataset
 
-A small hand-written seed set is committed so you can train immediately:
+Committed pairs let you train immediately (`dataset/train_pairs.jsonl`). To **scale the dataset
+up**, there are two steps — synthesize buggy code, then distill review pairs from it.
 
-```
-dataset/seed_pairs.jsonl     # ~20-30 {prompt, chosen, rejected} examples
-```
-
-To generate more, use an LLM judge to turn raw code samples into preference pairs. The default
-judge is **free and local** — a model you've already pulled into Ollama (`--provider ollama`),
-so no API key and no cloud. The provider is pluggable.
+### 1a. Synthesize buggy snippets (`generate_samples.py`)
 
 ```bash
-# Put raw code snippets (one file per sample) under dataset/raw/, then:
+# Free + hosted (strong, recommended): needs a free GROQ_API_KEY (console.groq.com)
+export GROQ_API_KEY=gsk_...
+python scripts/generate_samples.py --provider groq --output-dir dataset/raw --per-combo 2
 
-# FREE & local (default) — uses Ollama structured outputs to force the {chosen, rejected} shape:
-python scripts/generate_preferences.py \
-  --input dataset/raw/ \
-  --provider ollama --model qwen2.5-coder:14b \
-  --output dataset/dpo_pairs.jsonl
+# Free + fully local alternative:
+python scripts/generate_samples.py --provider ollama --model qwen2.5-coder:7b \
+  --output-dir dataset/raw
+```
+This writes one file per snippet across a bug taxonomy (injection, races, leaks, O(n²), …) ×
+languages (py/js/ts/go/rust/java).
 
-# Optional cloud judge — higher-quality pairs, but sends code to the API and costs money:
+### 1b. Distill preference pairs (`generate_preferences.py`)
+
+```bash
+# Free + hosted strong judge (Llama-3.3-70B) — the recommended balance:
+python scripts/generate_preferences.py --input dataset/raw/ \
+  --provider groq --output dataset/distilled_pairs.jsonl
+
+# Free + fully local judge (uses Ollama structured outputs for the {chosen, rejected} shape):
+python scripts/generate_preferences.py --input dataset/raw/ \
+  --provider ollama --model qwen2.5-coder:14b --output dataset/distilled_pairs.jsonl
+
+# Optional paid cloud judge — highest quality, sends code to the API:
 export ANTHROPIC_API_KEY=sk-ant-...
 python scripts/generate_preferences.py --input dataset/raw/ --provider anthropic   # or: openai
 ```
 
 `chosen` = a specific, opinionated review with a concrete fix. `rejected` = a generic,
-low-signal review. The local judge is weaker than a frontier model, so human-review your pairs
-(at least ~10%) before training — a bigger local judge (`qwen2.5-coder:14b`, or `:32b` if your
-RAM allows) gives noticeably better pairs. Generation is an offline batch job, so a slow big
-model is fine.
+low-signal review. **Judge quality matters most:** `groq` (free 70B) ≫ a small local model.
+Spot-check ~10% of the pairs, then **merge** the distilled set with the hand-authored
+`gold_pairs.jsonl` + `seed_pairs.jsonl` into `dataset/train_pairs.jsonl`, and **carve off a
+held-out slice** (`dataset/heldout_pairs.jsonl`, ~20–30 pairs not used in training) for Step 4.
 
 ## 2. (Optional) QLoRA SFT warm-up
 
@@ -117,24 +135,39 @@ Key settings (in `configs/qlora_7b.yaml` — the 3B config mirrors them with a l
 Monitor VRAM in a second terminal: `nvidia-smi` (or `nvitop`). If you hit OOM, lower
 `max_length` first, then `gradient_accumulation_steps`.
 
-## 4. Evaluate
+## 4. Evaluate — prove it beats the base model
 
 ```bash
+# Score the BASE model and your fine-tune on the SAME held-out prompts, side by side.
 python model/evaluate.py --model model/output/cendro-7b \
-  --base-model Qwen/Qwen2.5-Coder-7B-Instruct
+  --base-model Qwen/Qwen2.5-Coder-7B-Instruct \
+  --dataset dataset/heldout_pairs.jsonl --compare-base
 ```
 
-Checks each review is non-empty and references a concrete issue; optional BERTScore against
-reference reviews. Log results (date + metrics) in `.claude/MEMORY.md`.
+This prints both specificity scores and the delta (e.g. `base 41% → cendro 78%`). **Use a
+held-out dataset that was NOT in training** — otherwise the win is fake. Optional `--references`
+adds BERTScore vs the `chosen` reviews. Log results (date + metrics) in `.claude/MEMORY.md`.
 
-## 5. Export to GGUF + serve
+> ⚠️ **Gate:** if cendro-7b doesn't clearly beat base, do **not** ship it. Grow/curate more
+> data and retrain — a model that doesn't beat stock Qwen isn't worth publishing.
+
+## 5. Export to GGUF, serve, and publish
 
 ```bash
 python scripts/convert_to_gguf.py --model model/output/cendro-7b \
   --base-model Qwen/Qwen2.5-Coder-7B-Instruct --outfile model/cendro-7b.gguf --name cendro-7b
-# Registers a Modelfile so Ollama can load it:
-cendro pull --model cendro-7b
-cendro serve --model cendro-7b
+# Writes a Modelfile (with the full review SYSTEM_PROMPT baked in) so Ollama can load it:
+ollama create cendro-7b -f model/cendro-7b.Modelfile
+cendro serve --model cendro-7b           # serve locally
+ollama run cendro-7b                      # or use it directly, no API needed
+```
+
+**Publish so anyone can install it** (free Ollama account; the registry hosts the weights —
+GitHub does not):
+
+```bash
+ollama cp cendro-7b yin-0128/cendro-7b
+ollama push yin-0128/cendro-7b            # → users run: ollama pull yin-0128/cendro-7b
 ```
 
 ## Troubleshooting

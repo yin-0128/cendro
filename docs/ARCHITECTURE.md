@@ -34,7 +34,7 @@
                        ▼
 ┌──────────────────────────────────────────────────────────┐
 │              Fine-tuned Model                             │
-│   Base: Qwen2.5-Coder-7B (3B for low VRAM)             │
+│   Base: Qwen2.5-Coder-7B (chosen target)             │
 │   Training: QLoRA → merged → GGUF quantized              │
 │   Method: DPO on code review preference pairs            │
 └──────────────────────────────────────────────────────────┘
@@ -52,7 +52,9 @@
 | `model/inference.py` | Inference wrapper | Low |
 | `extension/src/extension.ts` | VS Code plugin main | Medium |
 | `github-action/action.yml` | GitHub Action definition | Low |
-| `scripts/generate_preferences.py` | DPO data generation | Medium |
+| `scripts/generate_samples.py` | Synthesize buggy-code corpus (distillation input) | Medium |
+| `scripts/generate_preferences.py` | DPO data generation (ollama/groq/anthropic/openai judge) | Medium |
+| `scripts/convert_to_gguf.py` | Merge LoRA → GGUF + Ollama Modelfile (bakes in SYSTEM_PROMPT) | Low |
 
 ---
 
@@ -83,9 +85,10 @@
 
 ## 🚧 Known Limitations
 
-- 8GB VRAM caps model at 7B max (7B for quality; 3B for faster/safer training)
-- DPO data generation is free and local by default (local Ollama judge, or the hand-authored
-  gold set); cloud judges (Claude/OpenAI) are optional for higher-quality pairs
+- 7B is the chosen target (quality + community reach). 7B QLoRA is tight on the 8GB 4060 →
+  train via Unsloth (WSL2) or a free Colab T4 (16GB). End-user hardware is not a constraint.
+- DPO data generation is free (local Ollama judge, or the free Groq 70B judge, or the
+  hand-authored gold set); cloud judges (Claude/OpenAI) are optional paid upgrades
 - GitHub Action requires user to self-host or use cloud API
 - No streaming response yet (planned)
 

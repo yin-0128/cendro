@@ -19,20 +19,28 @@ lora:
 
 train:
   output_dir: model/output/cendro-7b
-  num_train_epochs: 1
+  num_train_epochs: 3                 # task is harder with hard negatives; let eval pick the best
   per_device_train_batch_size: 1
   gradient_accumulation_steps: 16     # effective batch 16; raise if you have headroom
   gradient_checkpointing: true        # essential for 7B on 8GB
-  learning_rate: 0.0001
+  learning_rate: 0.00002              # 2e-5: 1e-4 drove the loss->0 collapse on the first run
   lr_scheduler_type: cosine
   warmup_ratio: 0.03
   logging_steps: 5
-  save_steps: 50
+  save_steps: 10
   bf16: true
   optim: paged_adamw_8bit             # 8-bit + paged keeps optimizer VRAM low
   max_length: 768                     # shorter than the 3B config to fit 8GB
   max_prompt_length: 512
   seed: 42
+  # Early-stopping / best-checkpoint on a val split (see scripts/split_dataset.py). Without
+  # this, overfitting (train-loss down, eval-loss up) is invisible. Wired in dpo_train.py.
+  eval_strategy: steps
+  eval_steps: 10
+  load_best_model_at_end: true
+  metric_for_best_model: eval_loss
+  greater_is_better: false
+  early_stopping_patience: 3          # stop if eval_loss hasn't improved for 3 evals
 
 dpo:
-  beta: 0.1
+  beta: 0.3                           # was 0.1; stronger KL anchor = less over-optimization on small data
