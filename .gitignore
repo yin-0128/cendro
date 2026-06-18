@@ -22,6 +22,12 @@ model/*.bin
 dataset/raw/
 dataset/dpo_pairs.jsonl
 
+# Build/scratch artifacts
+cendro_train.zip
+colab_train.py
+*.bak
+llama.cpp/
+
 # Logs
 logs/
 *.log
