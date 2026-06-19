@@ -56,18 +56,21 @@ def _run(model, tokenizer, rows: list[dict], max_new_tokens: int) -> tuple[list[
     for r in rows:
         messages = [{"role": "user", "content": r["prompt"]}]
         inputs = tokenizer.apply_chat_template(
-            messages, add_generation_prompt=True, return_tensors="pt"
+            messages, add_generation_prompt=True, return_tensors="pt", return_dict=True
         ).to(model.device)
         with torch.no_grad():
-            out = model.generate(inputs, max_new_tokens=max_new_tokens, do_sample=False)
-        review = tokenizer.decode(out[0][inputs.shape[1]:], skip_special_tokens=True).strip()
+            out = model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
+        prompt_len = inputs["input_ids"].shape[1]
+        review = tokenizer.decode(out[0][prompt_len:], skip_special_tokens=True).strip()
         generated.append(review)
         if looks_specific(review):
             specific_hits += 1
     return generated, specific_hits
 
 
-def _report(label: str, generated: list[str], hits: int, rows: list[dict], references: bool) -> None:
+def _report(
+    label: str, generated: list[str], hits: int, rows: list[dict], references: bool
+) -> None:
     n = len(rows)
     pct = 100 * hits / max(n, 1)
     print(f"[{label}] non-empty + specific: {hits}/{n} ({pct:.0f}%)")
@@ -137,13 +140,15 @@ def judge_pair(prompt: str, a: str, b: str, *, model: str) -> str:
     return winner if winner in {"A", "B"} else "tie"
 
 
-def win_rate(rows: list[dict], base_gen: list[str], tuned_gen: list[str], model: str, seed: int) -> float:
+def win_rate(
+    rows: list[dict], base_gen: list[str], tuned_gen: list[str], model: str, seed: int
+) -> float:
     """Blind pairwise win-rate of cendro vs base via a Groq judge (randomized A/B order)."""
     import random
 
     rng = random.Random(seed)
     cendro_wins = base_wins = ties = 0
-    for r, b, c in zip(rows, base_gen, tuned_gen):
+    for r, b, c in zip(rows, base_gen, tuned_gen, strict=False):
         cendro_is_a = rng.random() < 0.5  # randomize position to cancel A/B bias
         a_text, b_text = (c, b) if cendro_is_a else (b, c)
         try:

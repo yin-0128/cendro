@@ -75,7 +75,7 @@ MAX_WAIT = 90
 
 
 class RateLimited(RuntimeError):
-    """Raised when the daily quota is (likely) exhausted, so the run should stop and resume later."""
+    """Raised when the daily quota is (likely) exhausted, so the run stops and resumes later."""
 
 
 _EXT_LANG = {
@@ -188,7 +188,9 @@ Code:
 ```"""
 
 
-def _judge_groq_xml_fallback(code: str, language: str, *, model: str, api_key: str) -> dict[str, str]:
+def _judge_groq_xml_fallback(
+    code: str, language: str, *, model: str, api_key: str
+) -> dict[str, str]:
     """Fallback for when Groq's json_validate_failed: use XML delimiters without JSON mode."""
     import urllib.request  # noqa: PLC0415 — lazy import mirrors judge_groq pattern
 
@@ -276,7 +278,9 @@ def judge_groq(code: str, language: str, *, model: str, server_url: str) -> dict
             if e.code == 400 and "json_validate_failed" in detail:
                 # Groq's constrained JSON generation failed for this input. Retry once without
                 # JSON mode, using XML-style delimiters that are easier for the model to emit.
-                return _judge_groq_xml_fallback(code, language, model=model or "llama-3.3-70b-versatile", api_key=api_key)
+                return _judge_groq_xml_fallback(
+                    code, language, model=model or "llama-3.3-70b-versatile", api_key=api_key
+                )
             # Surface Groq's real message (model decommissioned, etc.) for a debuggable failure.
             raise RuntimeError(f"Groq API {e.code}: {detail}") from e
     raise RuntimeError("Groq API: still rate limited after 8 attempts")

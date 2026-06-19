@@ -25,7 +25,7 @@ def audit(path: Path) -> bool:
     malformed = 0
     seen_prompts: set[str] = set()
 
-    for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+    for line in path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
         if not line:
             continue
@@ -53,7 +53,7 @@ def audit(path: Path) -> bool:
     mr = statistics.median(rejected_lens)
     ratio = mc / mr if mr else float("inf")
     # rejected longer than chosen on a row = length can't be the deciding signal there.
-    rejected_longer = sum(r >= c for c, r in zip(chosen_lens, rejected_lens))
+    rejected_longer = sum(r >= c for c, r in zip(chosen_lens, rejected_lens, strict=False))
 
     print(f"{path}  ({n} pairs)")
     print(f"  median chars  chosen={mc:.0f}  rejected={mr:.0f}  ratio={ratio:.2f}x")

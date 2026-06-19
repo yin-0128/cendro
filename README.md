@@ -10,6 +10,8 @@
 
 **Your code never leaves your machine.**
 
+> **Honest status (v0.1.0):** the local pipeline — server · CLI · VS Code extension · GitHub Action — works today and runs **stock `qwen2.5-coder:7b`**. The DPO fine-tune that makes reviews *opinionated and specific* (the part that makes this more than an Ollama wrapper) is **not trained yet** — no benchmarks are claimed. See [Status](#️-status).
+
 [Status](#️-status) · [Quick Start](#-quick-start) · [How it works](#-how-it-works) · [Train your own](#️-train-your-own-model) · [Roadmap](#️-roadmap)
 
 </div>
@@ -83,6 +85,17 @@ curl -X POST http://localhost:8000/review \
   -H "Content-Type: application/json" \
   -d '{"code": "def f():\n  return [i for i in range(1000000)]", "language": "python"}'
 ```
+
+### Or with Docker (no local Python/Ollama setup)
+
+Brings up Ollama, pulls the model once, and starts the server on `http://localhost:8000`:
+
+```bash
+docker compose up
+```
+
+> First run downloads a multi-GB model. For usable speed on a 7B model, uncomment the GPU
+> block in [docker-compose.yml](docker-compose.yml).
 
 ---
 

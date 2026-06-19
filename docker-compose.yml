@@ -1,0 +1,53 @@
+# One-command local Cendro: `docker compose up`
+#
+#   - ollama:        runs the model daemon (CPU by default; see the GPU note below)
+#   - model-puller:  pulls qwen2.5-coder:7b once, then exits
+#   - cendro:        the FastAPI server on http://localhost:8000
+#
+# First run downloads a multi-GB model, so it takes a while. The model is cached in the
+# named `ollama` volume, so later runs are fast.
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama:/root/.ollama
+    ports:
+      - "11434:11434"
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # GPU (NVIDIA): uncomment to make inference usable for a 7B model.
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  model-puller:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["ollama", "pull", "${CENDRO_MODEL:-qwen2.5-coder:7b}"]
+    restart: "no"
+
+  cendro:
+    build: .
+    depends_on:
+      model-puller:
+        condition: service_completed_successfully
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      CENDRO_MODEL: ${CENDRO_MODEL:-qwen2.5-coder:7b}
+    ports:
+      - "8000:8000"
+
+volumes:
+  ollama:

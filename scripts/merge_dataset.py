@@ -35,7 +35,9 @@ def write(path: str, rows: list[dict]) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Merge preference pairs into train/heldout splits.")
+    parser = argparse.ArgumentParser(
+        description="Merge preference pairs into train/heldout splits."
+    )
     parser.add_argument("--heldout", type=int, default=25, help="Held-out pairs reserved for eval.")
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
@@ -62,7 +64,10 @@ def main() -> None:
 
     write("dataset/train_pairs.jsonl", train)
     write("dataset/heldout_pairs.jsonl", heldout)
-    print(f"\ntrain={len(train)}  heldout={len(heldout)}  (from {len(uniq)} unique of {len(pairs)} total)")
+    print(
+        f"\ntrain={len(train)}  heldout={len(heldout)}  "
+        f"(from {len(uniq)} unique of {len(pairs)} total)"
+    )
 
 
 if __name__ == "__main__":

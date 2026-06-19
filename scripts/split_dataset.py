@@ -24,7 +24,9 @@ def main() -> None:
     parser.add_argument("--input", default="dataset/train_pairs.jsonl")
     parser.add_argument("--train", default="dataset/train_split.jsonl")
     parser.add_argument("--val", default="dataset/val_pairs.jsonl")
-    parser.add_argument("--val-size", type=int, default=24, help="Number of rows held out for eval.")
+    parser.add_argument(
+        "--val-size", type=int, default=24, help="Number of rows held out for eval."
+    )
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 

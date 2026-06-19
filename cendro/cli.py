@@ -50,6 +50,15 @@ def cmd_review(args: argparse.Namespace) -> int:
     # Imported here so `pull`/`serve` don't require the inference deps at import time.
     from model import inference
 
+    reason = _sensitive_reason(args.path)
+    if reason and not args.force:
+        print(
+            f"Refusing to review '{args.path}': {reason}. Reviewing it would send its contents "
+            f"to the model. Re-run with --force if you really mean to.",
+            file=sys.stderr,
+        )
+        return 1
+
     try:
         with open(args.path, encoding="utf-8") as fh:
             code = fh.read()
@@ -69,6 +78,28 @@ def cmd_review(args: argparse.Namespace) -> int:
     print(result.review)
     print(f"\n— {result.model} · {result.latency_ms} ms", file=sys.stderr)
     return 0
+
+
+# Files that usually hold secrets — reviewing them ships their contents to the model.
+_SENSITIVE_NAMES = {
+    ".env", ".env.local", ".env.production", ".npmrc", ".netrc", ".pypirc",
+    "credentials", "id_rsa", "id_dsa", "id_ecdsa", "id_ed25519",
+}
+_SENSITIVE_SUFFIXES = (".pem", ".key", ".pfx", ".p12", ".keystore")
+_SENSITIVE_DIRS = {".ssh", ".aws", ".gnupg", ".gcloud"}
+
+
+def _sensitive_reason(path: str) -> str | None:
+    """Return a human reason if ``path`` looks like a secret file, else None."""
+    name = os.path.basename(path).lower()
+    parts = {p.lower() for p in os.path.normpath(path).split(os.sep)}
+    if name in _SENSITIVE_NAMES or name.startswith(".env"):
+        return "looks like a secrets/dotenv file"
+    if name.endswith(_SENSITIVE_SUFFIXES):
+        return "looks like a private key or certificate"
+    if parts & _SENSITIVE_DIRS:
+        return "lives in a credentials directory"
+    return None
 
 
 _EXT_LANG = {
@@ -104,6 +135,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_review.add_argument("--language", help="Override detected language.")
     p_review.add_argument("--focus", help="Aspect to focus on (e.g. 'security').")
     p_review.add_argument("--model", help="Model to use.")
+    p_review.add_argument(
+        "--force", action="store_true",
+        help="Review even if the file looks like a secret (.env, keys, ~/.ssh, ...).",
+    )
     p_review.set_defaults(func=cmd_review)
 
     return parser

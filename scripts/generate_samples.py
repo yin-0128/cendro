@@ -156,12 +156,18 @@ GENERATORS = {"groq": gen_groq, "ollama": gen_ollama}
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate buggy code snippets for DPO distillation.")
+    parser = argparse.ArgumentParser(
+        description="Generate buggy code snippets for DPO distillation."
+    )
     parser.add_argument("--output-dir", default="dataset/raw")
     parser.add_argument("--provider", choices=list(GENERATORS), default="groq")
-    parser.add_argument("--model", default="", help="Generator model id (provider-specific default).")
+    parser.add_argument(
+        "--model", default="", help="Generator model id (provider-specific default)."
+    )
     parser.add_argument("--server-url", default="http://localhost:11434", help="Ollama server URL.")
-    parser.add_argument("--per-combo", type=int, default=1, help="Snippets per (category, language).")
+    parser.add_argument(
+        "--per-combo", type=int, default=1, help="Snippets per (category, language)."
+    )
     parser.add_argument(
         "--languages", default=",".join(LANGUAGES),
         help="Comma-separated subset of languages to generate.",

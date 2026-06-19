@@ -77,7 +77,11 @@ def main() -> None:
     if not api_key:
         raise SystemExit("GROQ_API_KEY is not set.")
 
-    rows = [json.loads(l) for l in GOLD_PATH.read_text(encoding="utf-8").splitlines() if l.strip()]
+    rows = [
+        json.loads(ln)
+        for ln in GOLD_PATH.read_text(encoding="utf-8").splitlines()
+        if ln.strip()
+    ]
 
     fixed = 0
     for i, row in enumerate(rows):
@@ -97,7 +101,9 @@ def main() -> None:
         row["rejected"] = new_rejected
         fixed += 1
 
-    GOLD_PATH.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8")
+    GOLD_PATH.write_text(
+        "\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8"
+    )
     print(f"\nFixed {fixed}/{len(rows)} pairs in {GOLD_PATH}")
 
 

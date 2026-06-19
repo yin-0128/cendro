@@ -1,0 +1,24 @@
+# Reproducible-install constraints for the Cendro runtime + dev stack.
+#
+# Use it to stop dependency drift between machines and over time:
+#
+#     pip install -e ".[dev]" -c constraints.txt
+#
+# These are the lower bounds Cendro is developed against. For a *full* lock that also
+# pins transitive dependencies (the real guarantee), regenerate with uv or pip-tools:
+#
+#     uv pip compile pyproject.toml --extra dev --output-file constraints.txt
+#     # or: pip-compile --extra dev -o constraints.txt pyproject.toml
+#
+# The training stack (torch, transformers, bitsandbytes, ...) is intentionally left out:
+# its correct versions are GPU/CUDA-specific, so pin those in your training environment.
+
+fastapi==0.110.0
+uvicorn==0.27.0
+pydantic==2.5.0
+ollama==0.3.0
+
+# dev
+pytest==8.0.0
+httpx==0.27.0
+ruff==0.5.0
