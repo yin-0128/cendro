@@ -229,8 +229,18 @@ def main() -> None:
     tokenizer = AutoTokenizer.from_pretrained(args.base_model)
     # bf16 only on Ampere+ (e.g. local 4060); fall back to fp16 on Turing (Colab T4).
     dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+    # Load 4-bit so the 7B fits in 8GB VRAM (4060 / Colab T4) with no slow CPU offload —
+    # this also matches how Ollama serves the model, so the eval reflects real behavior.
+    from transformers import BitsAndBytesConfig
+
+    bnb = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_compute_dtype=dtype,
+    )
     base = AutoModelForCausalLM.from_pretrained(
-        args.base_model, torch_dtype=dtype, device_map="auto"
+        args.base_model, quantization_config=bnb, device_map="auto"
     )
     base.eval()
 
